@@ -47,10 +47,12 @@ fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
         NestedList::Elem(e) => {
             res.push(e);
         }
-        NestedList::List(v) => v.iter().for_each(|nl| {
-            let mut sub = flatten(nl);
-            res.append(&mut sub);
-        }),
+        NestedList::List(v) => {
+            for nl in v {
+                let mut sub = flatten(nl);
+                res.append(&mut sub);
+            }
+        }
     }
     res
 }
