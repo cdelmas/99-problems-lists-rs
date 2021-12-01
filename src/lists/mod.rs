@@ -81,7 +81,7 @@ fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
         })
 }
 
-fn encode<A: Eq + std::fmt::Debug>(list: &Vec<A>) -> Vec<(usize, &A)> {
+fn encode<A: Eq>(list: &Vec<A>) -> Vec<(usize, &A)> {
     pack_consecutive_duplicates(&list)
         .iter()
         .map(|v| (v.len(), v[0]))
