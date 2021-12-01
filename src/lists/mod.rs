@@ -173,6 +173,14 @@ fn split_n<A>(list: &[A], at: usize) -> (&[A], &[A]) {
     }
 }
 
+fn slice<A>(list: &[A], from: usize, to: usize) -> Option<&[A]> {
+    if to < from || from >= list.len() || to >= list.len() {
+        None
+    } else {
+        Some(&list[from..(to + 1)])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -472,5 +480,34 @@ mod test {
 
             prop_assert_eq!(std::cmp::min(at as usize, list.len()), part1.len());
         }
+    }
+
+    #[test]
+    fn slice_test() {
+        let v = &[1, 2, 3, 4, 89, 143];
+        let res = slice(v, 0, 5);
+        assert_eq!(v, res.unwrap());
+
+        let v = &[1, 2, 3, 4, 89, 143];
+        let res = slice(v, 1, 4);
+        assert_eq!(&[2, 3, 4, 89], res.unwrap());
+
+        let v = &[1, 2, 3, 4, 89, 143];
+        let res = slice(v, 4, 5);
+        assert_eq!(&[89, 143], res.unwrap());
+    }
+
+    #[test]
+    fn slice_out_of_bounds() {
+        let v = &[1, 2, 3, 4, 89, 143];
+        let res = slice(v, 0, 45);
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn slice_from_bigger_than_to() {
+        let v = &[1, 2, 3, 4, 89, 143];
+        let res = slice(v, 3, 2);
+        assert!(res.is_none());
     }
 }
