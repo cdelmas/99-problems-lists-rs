@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 fn last<A>(l: &[A]) -> Option<&A> {
     //l.last()
     match l {
@@ -204,8 +206,7 @@ fn remove_at<A: Clone>(list: &[A], n: usize) -> Option<(A, Vec<A>)> {
 
 fn insert_at<A: Clone>(list: &[A], a: A, at: usize) -> Vec<A> {
     let mut v = list.to_vec();
-    let at = if at > list.len() { list.len() } else { at };
-    v.insert(at, a);
+    v.insert(min(at, list.len()), a);
     v
 }
 
