@@ -1,8 +1,8 @@
-fn last<A>(l: &Vec<A>) -> Option<&A> {
+fn last<A>(l: &[A]) -> Option<&A> {
     l.last()
 }
 
-fn but_last<A>(l: &Vec<A>) -> Option<&A> {
+fn but_last<A>(l: &[A]) -> Option<&A> {
     if l.len() >= 2 {
         l.get(l.len() - 2)
     } else {
@@ -10,7 +10,7 @@ fn but_last<A>(l: &Vec<A>) -> Option<&A> {
     }
 }
 
-fn k_th<A>(l: &Vec<A>, index: usize) -> Option<&A> {
+fn k_th<A>(l: &[A], index: usize) -> Option<&A> {
     if index == 0 {
         None
     } else {
@@ -18,17 +18,17 @@ fn k_th<A>(l: &Vec<A>, index: usize) -> Option<&A> {
     }
 }
 
-fn length<A>(l: &Vec<A>) -> usize {
+fn length<A>(l: &[A]) -> usize {
     l.len()
 }
 
-fn reverse<A: Clone>(l: &Vec<A>) -> Vec<A> {
-    let mut copy = l.clone();
+fn reverse<A: Clone>(l: &[A]) -> Vec<A> {
+    let mut copy = (*l).to_vec();
     copy.reverse();
     copy
 }
 
-fn is_palindrome<A: Eq>(l: &Vec<A>) -> bool {
+fn is_palindrome<A: Eq>(l: &[A]) -> bool {
     let (forward, backward) = l.split_at(l.len() / 2);
     let forward = forward.iter();
     let backward = backward.iter().rev();
@@ -57,7 +57,7 @@ fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
     res
 }
 
-fn remove_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<&A> {
+fn remove_consecutive_duplicates<A: Eq>(list: &[A]) -> Vec<&A> {
     list.iter().fold(vec![], |mut acc, e| match acc.last() {
         Some(last) if last == &e => acc,
         _ => {
@@ -67,7 +67,7 @@ fn remove_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<&A> {
     })
 }
 
-fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
+fn pack_consecutive_duplicates<A: Eq>(list: &[A]) -> Vec<Vec<&A>> {
     list.iter()
         .fold(vec![] as Vec<Vec<&A>>, |mut acc, e| match acc.last_mut() {
             Some(prev) if prev.contains(&e) => {
@@ -81,8 +81,8 @@ fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
         })
 }
 
-fn occurrences<A: Eq>(list: &Vec<A>) -> Vec<(usize, &A)> {
-    pack_consecutive_duplicates(&list)
+fn occurrences<A: Eq>(list: &[A]) -> Vec<(usize, &A)> {
+    pack_consecutive_duplicates(list)
         .iter()
         .map(|v| (v.len(), v[0]))
         .collect()
@@ -122,15 +122,15 @@ where
     }
 }
 
-fn encode<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
-    pack_consecutive_duplicates(&list)
-        .into_iter()
+fn encode<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
+    pack_consecutive_duplicates(list)
+        .iter()
         .map(|v| Occurrence::new(v.len(), v[0]))
         .collect()
 }
 
-fn decode<'a, A>(list: &'a Vec<Occurrence<A>>) -> Vec<&'a A> {
-    list.into_iter()
+fn decode<'a, A>(list: &'a [Occurrence<A>]) -> Vec<&'a A> {
+    list.iter()
         .fold(vec![] as Vec<&'a A>, |mut acc, o| match *o {
             Occurrence::Single(x) => {
                 acc.push(x);
@@ -144,8 +144,8 @@ fn decode<'a, A>(list: &'a Vec<Occurrence<A>>) -> Vec<&'a A> {
         })
 }
 
-fn encode_no_intermediary<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
-    list.into_iter()
+fn encode_no_intermediary<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
+    list.iter()
         .fold(vec![] as Vec<Occurrence<A>>, |mut acc, e| {
             let value = match acc.pop() {
                 Some(Occurrence::Single(a)) if a == e => Occurrence::Multiple(2, e),
@@ -161,8 +161,8 @@ fn encode_no_intermediary<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
         })
 }
 
-fn duplicate<A: Clone>(list: &Vec<A>) -> Vec<A> {
-    list.into_iter().fold(vec![], |mut acc, e| {
+fn duplicate<A: Clone>(list: &[A]) -> Vec<A> {
+    list.iter().fold(vec![], |mut acc, e| {
         acc.push(e.clone());
         acc.push(e.clone());
         acc
