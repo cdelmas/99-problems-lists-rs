@@ -18,6 +18,16 @@ fn k_th<A>(l: &Vec<A>, index: usize) -> Option<&A> {
     }
 }
 
+fn length<A>(l: &Vec<A>) -> usize {
+    l.len()
+}
+
+fn reverse<A: Clone>(l: &Vec<A>) -> Vec<A> {
+    let mut copy = l.clone();
+    copy.reverse();
+    copy
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -60,5 +70,10 @@ mod test {
         } else {
             TestResult::from_bool(k_th(&list, idx).is_some())
         }
+    }
+
+    #[quickcheck]
+    fn reverse_the_reversed_list_gives_the_original(list: Vec<isize>) -> bool {
+        reverse(&reverse(&list)) == list
     }
 }
