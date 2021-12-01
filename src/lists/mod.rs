@@ -202,6 +202,13 @@ fn remove_at<A: Clone>(list: &[A], n: usize) -> Option<(A, Vec<A>)> {
     }
 }
 
+fn insert_at<A: Clone>(list: &[A], a: A, at: usize) -> Vec<A> {
+    let mut v = list.to_vec();
+    let at = if at > list.len() { list.len() } else { at };
+    v.insert(at, a);
+    v
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -563,5 +570,15 @@ mod test {
         }
 
         // another prop: remove_at n followed by insert_at n is the original
+    }
+
+    proptest! {
+        #[test]
+        fn insert_at_increase_length_by_1_and_all_elems_are_in_list(list: Vec<char>, c: char, at in 0..10usize) {
+            let res = insert_at(&list, c, at);
+            prop_assert!(
+                res.len() == list.len()+1 && res.contains(&c) && list.iter().all(|e| res.contains(e))
+            );
+        }
     }
 }
