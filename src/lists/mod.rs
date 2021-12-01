@@ -46,7 +46,7 @@ mod test {
 
     #[quickcheck]
     fn kth_with_index_bigger_than_size_is_none(list: Vec<isize>, idx: usize) -> TestResult {
-        if idx < list.len() && idx != 0 {
+        if idx < list.len() + 1 && idx != 0 {
             TestResult::discard()
         } else {
             TestResult::from_bool(k_th(&list, idx).is_none())
@@ -55,7 +55,7 @@ mod test {
 
     #[quickcheck]
     fn kth_with_index_in_range_1_len_is_some(list: Vec<isize>, idx: usize) -> TestResult {
-        if idx == 0 || idx >= list.len() {
+        if idx == 0 || idx > list.len() {
             TestResult::discard()
         } else {
             TestResult::from_bool(k_th(&list, idx).is_some())
