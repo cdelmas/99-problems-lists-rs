@@ -119,8 +119,8 @@ fn encode<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
 fn decode<'a, A>(list: &'a [Occurrence<A>]) -> Vec<&'a A> {
     list.iter()
         .flat_map(|o| match o {
-            Occurrence::Single(ref x) => vec![*x],
-            Occurrence::Multiple(ref n, ref x) => vec![*x; *n],
+            Occurrence::Single(x) => vec![*x],
+            Occurrence::Multiple(ref n, x) => vec![*x; *n],
         })
         .collect()
 }
@@ -179,6 +179,17 @@ fn slice<A>(list: &[A], from: usize, to: usize) -> Option<&[A]> {
     } else {
         Some(&list[from..(to + 1)])
     }
+}
+
+fn rotate<A: Clone>(list: &[A], n: isize) -> Vec<A> {
+    //(len + (index % len)) % length
+    let len = list.len() as isize;
+    let split_index = (n.checked_rem_euclid(len).unwrap_or_default() + len)
+        .checked_rem_euclid(len)
+        .unwrap_or_default();
+
+    let (first, second) = split_n(list, split_index as usize);
+    [second, first].concat()
 }
 
 #[cfg(test)]
@@ -437,22 +448,22 @@ mod test {
 
     proptest! {
         #[test]
-        fn replicates_has_n_times_the_size_of_the_original(list: Vec<isize>, repl_num in 2..10) {
-            prop_assert_eq!(list.len()*repl_num as usize, replicate(&list, repl_num as u8).len());
+        fn replicates_has_n_times_the_size_of_the_original(list: Vec<isize>, repl_num in 2..10u8) {
+            prop_assert_eq!(list.len()*repl_num as usize, replicate(&list, repl_num).len());
         }
         #[test]
-        fn each_element_in_the_original_is_in_the_replicates(list: Vec<isize>, repl_num in 2..10) {
-            let res = replicate(&list, repl_num as u8);
+        fn each_element_in_the_original_is_in_the_replicates(list: Vec<isize>, repl_num in 2..10u8) {
+            let res = replicate(&list, repl_num);
             prop_assert!(list.iter().all(|o| res.contains(&o)));
         }
     }
 
     proptest! {
         #[test]
-        fn drop_every_nth_elem_of_the_list_removes_up_to_len_minus_len_div_n_elements(list: Vec<isize>, to_remove in 0..10) {
-            let res_length = list.len() - list.len().checked_div_euclid(to_remove as usize).unwrap_or_default();
+        fn drop_every_nth_elem_of_the_list_removes_up_to_len_minus_len_div_n_elements(list: Vec<isize>, to_remove in 0..10usize) {
+            let res_length = list.len() - list.len().checked_div_euclid(to_remove).unwrap_or_default();
 
-            prop_assert_eq!(res_length, drop_every_nth(&list, to_remove as usize).len());
+            prop_assert_eq!(res_length, drop_every_nth(&list, to_remove).len());
         }
         // other properties: keeps the order, all elements in res is also in the original
     }
@@ -468,17 +479,17 @@ mod test {
 
     proptest! {
         #[test]
-        fn split_then_join_leads_to_the_original(list: Vec<isize>, at in 0..10) {
-            let (part1, part2) = split_n(&list, at as usize);
+        fn split_then_join_leads_to_the_original(list: Vec<isize>, at in 0..10usize) {
+            let (part1, part2) = split_n(&list, at);
 
             prop_assert_eq!(list.as_slice(), [part1, part2].concat());
         }
 
         #[test]
-        fn first_part_has_size_at_or_is_full_original(list: Vec<isize>, at in 0..10) {
-            let (part1, _) = split_n(&list, at as usize);
+        fn first_part_has_size_at_or_is_full_original(list: Vec<isize>, at in 0..10usize) {
+            let (part1, _) = split_n(&list, at);
 
-            prop_assert_eq!(std::cmp::min(at as usize, list.len()), part1.len());
+            prop_assert_eq!(std::cmp::min(at, list.len()), part1.len());
         }
     }
 
@@ -509,5 +520,22 @@ mod test {
         let v = &[1, 2, 3, 4, 89, 143];
         let res = slice(v, 3, 2);
         assert!(res.is_none());
+    }
+
+    proptest! {
+        #[test]
+        fn rotate_keeps_the_length_invariant(list: Vec<char>, n in 0..10isize) {
+            prop_assert_eq!(list.len(), rotate(&list, n).len());
+        }
+        #[test]
+        fn rotate_keeps_the_same_elements(list: Vec<char>, n in 0..10isize) {
+            prop_assert!(rotate(&list, n).iter().all(|e| list.contains(e)));
+        }
+        #[test]
+        fn rotate_then_rotate_with_the_opposite_leaves_the_original(list: Vec<char>, n in 0..10isize) {
+            let rotated = rotate(&list, n).to_vec();
+            let re_rotated = rotate(&rotated, -n);
+            prop_assert_eq!(list, re_rotated);
+        }
     }
 }
