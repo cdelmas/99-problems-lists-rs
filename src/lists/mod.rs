@@ -88,6 +88,29 @@ fn encode<A: Eq>(list: &Vec<A>) -> Vec<(usize, &A)> {
         .collect()
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum Occurrence<'a, A> {
+    Single(&'a A),
+    Multiple(usize, &'a A),
+}
+
+impl<'a, A> Occurrence<'a, A> {
+    fn new(size: usize, elem: &'a A) -> Self {
+        if size == 1 {
+            Occurrence::Single(elem)
+        } else {
+            Occurrence::Multiple(size, elem)
+        }
+    }
+}
+
+fn occurrences<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
+    pack_consecutive_duplicates(&list)
+        .into_iter()
+        .map(|v| Occurrence::new(v.len(), v[0]))
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -257,6 +280,27 @@ mod test {
 
         assert_eq!(
             vec![(2, &1), (1, &2), (3, &3), (1, &2), (2, &3), (2, &2)],
+            res
+        );
+    }
+
+    #[test]
+    fn occurrences_tests() {
+        use Occurrence::*;
+        let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
+        let res = occurrences(&v);
+
+        assert_eq!(res.len(), 6);
+
+        assert_eq!(
+            vec![
+                Multiple(2, &1),
+                Single(&2),
+                Multiple(3, &3),
+                Single(&2),
+                Multiple(2, &3),
+                Multiple(2, &2)
+            ],
             res
         );
     }
