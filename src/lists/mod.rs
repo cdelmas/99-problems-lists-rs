@@ -248,11 +248,60 @@ fn combinations<'a, A>(list: &'a [A], n: usize) -> Vec<Vec<&'a A>> {
     list.into_iter().combinations(n).collect()
 }
 
+fn group<A>(sizes: &[u8], list: &[A]) -> Option<Vec<Vec<Vec<A>>>>
+where
+    A: Clone + PartialEq,
+{
+    type Group<A> = Vec<A>;
+    type Groups<A> = Vec<Group<A>>;
+    if sizes.iter().sum::<u8>() as usize != list.len() {
+        // NOTE: sum could overflow, and it is not handled
+        None
+    } else {
+        // accumulator: Vec(partial solutions, remaining elements);
+        // when remaining is empty (= when we finish the fold), we have the solutions
+        let init: Vec<(Groups<A>, Vec<A>)> = vec![(vec![], list.to_vec())];
+        Some(
+            sizes
+                .iter()
+                .fold(init, |acc, size| {
+                    acc.iter()
+                        .flat_map(|(partial_solution, remaining_elements)| {
+                            remaining_elements
+                                .iter()
+                                .combinations(*size as usize) // compute all combinations of s elements in remaining_elements
+                                .map(move |combo| {
+                                    remaining_elements
+                                        .iter()
+                                        .cloned()
+                                        .partition(|e| combo.contains(&e))
+                                }) // for each combination, get the remaining elements
+                                .map(move |(combo, new_remaining_elements)| {
+                                    // for each pair combo/remaining elements,
+                                    // add the combo to the partial solution,
+                                    // and keep the remaining elements for the next turn
+                                    let mut new_partial_solution = vec![];
+                                    new_partial_solution.extend(partial_solution.clone());
+                                    new_partial_solution.push(combo);
+                                    (new_partial_solution, new_remaining_elements)
+                                })
+                        })
+                        .collect::<Vec<(Groups<A>, Vec<A>)>>()
+                })
+                .iter()
+                .map(|x| x.0.clone())
+                .collect::<Vec<Groups<A>>>(),
+        ) // solutions are the _.0 part (_.1 is [])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
+    use factorial::Factorial;
     use proptest::prelude::*;
+    use std::collections::HashSet;
     use NestedList::*;
 
     proptest! {
@@ -684,13 +733,13 @@ mod test {
         }
     }
 
-    fn small_vector() -> impl Strategy<Value = Vec<char>> {
-        proptest::collection::vec(proptest::char::any(), 3..10)
+    fn small_vector(lower_bound: usize, upper_bound: usize) -> impl Strategy<Value = Vec<char>> {
+        proptest::collection::vec(proptest::char::any(), lower_bound..upper_bound)
     }
 
     proptest! {
         #[test]
-        fn combinations_has_c_length_n_size(list in small_vector(), n in 1..5u16) {
+        fn combinations_has_c_length_n_size(list in small_vector(3, 10), n in 1..5u16) {
             let expected_total = num_integer::binomial::<u16>(list.len() as u16, n) as usize;
             let res = combinations(&list, n as usize);
 
@@ -698,10 +747,64 @@ mod test {
         }
 
         #[test]
-        fn combinations_have_elements_in_original(list in small_vector(), n in 1..5u16) {
+        fn combinations_have_elements_in_original(list in small_vector(3, 10), n in 1..5u16) {
             let res = combinations(&list, n as usize);
 
             prop_assert!(res.iter().flatten().all(|e| list.contains(e)));
+        }
+    }
+
+    fn decompose_n(n: u8) -> Vec<Vec<u8>> {
+        let tools = 1..n;
+        let components = min(n / 3 + 1, 2);
+        tools
+            .combinations(components.into())
+            .filter(|combo| combo.iter().sum::<u8>() == n)
+            .collect::<Vec<Vec<u8>>>()
+    }
+
+    fn decompose<R>(n: u8, rng: &mut R) -> Vec<u8>
+    where
+        R: Rng,
+    {
+        let choices = decompose_n(n);
+        let idx = rng.gen_range(0..choices.len());
+        choices[idx].clone()
+    }
+
+    fn small_vector_no_dup_and_size(
+        lower_bound: usize,
+        upper_bound: usize,
+    ) -> impl Strategy<Value = (Vec<char>, Vec<u8>)> {
+        proptest::collection::hash_set(proptest::char::any(), lower_bound..upper_bound).prop_map(
+            |v| {
+                let sizes = decompose(v.len() as u8, &mut rand::thread_rng());
+                (v.into_iter().collect::<Vec<char>>(), sizes)
+            },
+        )
+    }
+
+    proptest! {
+
+        #[test]
+        fn groups_has_multinomial_nb_of_solutions(list_and_sizes in small_vector_no_dup_and_size(5, 10)) {
+            let (list, sizes) = list_and_sizes;
+            let res = group(&sizes, &list);
+
+            let expected_num_solutions = sizes.iter().map(|e| *e as usize).sum::<usize>().factorial() / sizes.iter().map(|e| (*e as usize).factorial()).product::<usize>();
+            prop_assert_eq!(expected_num_solutions, res.unwrap().len());
+        }
+
+        #[test]
+        fn joining_each_solution_gives_back_the_original(list_and_sizes in small_vector_no_dup_and_size(5, 10)) {
+            let (list, sizes) = list_and_sizes;
+            let res = group(&sizes, &list);
+
+            let list_set = list.into_iter().collect::<HashSet<char>>();
+            let property = res.unwrap().into_iter().all(|solution| {
+                list_set == solution.into_iter().flatten().collect::<HashSet<char>>()
+            });
+            prop_assert!(property);
         }
     }
 }
