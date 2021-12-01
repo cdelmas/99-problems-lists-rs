@@ -57,6 +57,36 @@ fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
     res
 }
 
+fn remove_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<&A> {
+    let (_, res) = list.iter().fold((None, vec![]), |(prev, acc), e| {
+        let mut acc = acc;
+        match prev {
+            Some(last) if last == e => (prev, acc),
+            _ => {
+                acc.push(e);
+                (Some(e), acc)
+            }
+        }
+    });
+    res
+}
+
+fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
+    let (_, res) = list.iter().fold(
+        (vec![], vec![]) as (Vec<&A>, Vec<Vec<&A>>),
+        |(mut prev, mut acc), e| {
+            if prev.contains(&e) {
+                prev.push(e);
+                (prev, acc)
+            } else {
+                acc.push(prev);
+                (vec![e], acc)
+            }
+        },
+    );
+    res
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -192,5 +222,28 @@ mod test {
         let res = flatten(&l);
 
         assert_eq!(res, vec![&4, &2, &6, &17]);
+    }
+
+    proptest! {
+        #[test]
+        fn removing_duplicates_leaves_a_smaller_or_equal_length_list(list: Vec<isize>) {
+            let no_dups = remove_consecutive_duplicates(&list);
+            prop_assert!(
+                (list.len() == 0 && no_dups.len() == 0)
+                || (no_dups.len() <= list.len() && no_dups.len() > 0)
+            );
+        }
+    }
+
+    // another property for removing duplicate: elements in the compressed vector appear in the same order than in the original
+
+    proptest! {
+        #[test]
+        fn packing_leads_to_the_same_length_as_removing_dups(list: Vec<isize>) {
+            let no_dups = remove_consecutive_duplicates(&list);
+            let packed = pack_consecutive_duplicates(&list);
+
+            prop_assert_eq!(no_dups.len(), packed.len());
+        }
     }
 }
