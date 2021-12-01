@@ -223,6 +223,17 @@ where
     list.choose_multiple(rng, n).collect()
 }
 
+fn lottery_draw<R>(upper_bound: u32, n: u32, rng: &mut R) -> Vec<u32>
+where
+    R: Rng,
+{
+    let numbers: Vec<u32> = (1..upper_bound+1).collect();
+    random_select(&numbers, n as usize, rng)
+        .into_iter()
+        .cloned()
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -621,5 +632,24 @@ mod test {
 
             prop_assert!(res.iter().all(|e| list.contains(e)));
         }
+    }
+
+    proptest! {
+        #[test]
+        fn lottery_draw_result_has_size_equal_to_min_upper_bound_and_n(upper_bound in 0..10000u32, n in 0..10000u32) {
+            prop_assume!(upper_bound != 0);
+
+            let res = lottery_draw(upper_bound, n, &mut rand::thread_rng());
+
+            prop_assert_eq!(min(n, upper_bound), res.len() as u32);
+        }
+
+        #[test]
+        fn lottery_draw_every_number_is_between_1_and_upper_bound(upper_bound in 0..10000u32, n in 0..10000u32) {
+            let res = lottery_draw(upper_bound, n, &mut rand::thread_rng());
+
+            prop_assert!(res.iter().all(|e| *e >= 1 && *e <= upper_bound));
+        }
+
     }
 }
