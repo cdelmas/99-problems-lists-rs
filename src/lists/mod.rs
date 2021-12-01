@@ -244,8 +244,8 @@ where
     v
 }
 
-fn combinations<'a, A>(list: &'a [A], n: usize) -> Vec<Vec<&'a A>> {
-    list.into_iter().combinations(n).collect()
+fn combinations<A>(list: &[A], n: usize) -> Vec<Vec<&A>> {
+    list.iter().combinations(n).collect()
 }
 
 fn group<A>(sizes: &[u8], list: &[A]) -> Option<Vec<Vec<Vec<A>>>>
@@ -293,6 +293,15 @@ where
                 .collect::<Vec<Groups<A>>>(),
         ) // solutions are the _.0 part (_.1 is [])
     }
+}
+
+fn sort_by_length<A>(list: &[Vec<A>]) -> Vec<Vec<A>>
+where
+    A: Clone,
+{
+    let mut v = list.to_vec();
+    v.sort_by(|x, y| x.len().cmp(&y.len()));
+    v
 }
 
 #[cfg(test)]
@@ -806,5 +815,46 @@ mod test {
             });
             prop_assert!(property);
         }
+    }
+
+    proptest! {
+
+        #[test]
+        fn sort_by_length_has_same_elements_than_original(list: Vec<Vec<char>>) {
+            let res = sort_by_length(&list);
+
+            prop_assert!(res.iter().all(|e| list.contains(e)) && list.len() == res.len());
+        }
+
+        // TODO: add property: each elem has length >= previous
+
+    }
+
+    // TODO: extract to sort_by_length_freq
+    // add tests; what kind of property can we have?
+    // - same elements than original
+    // - ???
+    #[test]
+    fn group_by() {
+        use std::collections::BTreeMap;
+        use std::iter::FromIterator;
+        use itertools::Itertools;
+        
+        // input: list of lists
+        
+        // TODO: tri: nb occurrences sur la longueur de la liste: la longueur la moins courante en premier
+        // => creer 
+        
+        let v: Vec<&str> = vec!["alpha","beta","gamma","delta","omicron","omega"];
+        let lookup = v.into_iter().into_group_map_by(|e| e.len());
+        let mut words = lookup.values().cloned().collect::<Vec<_>>();
+        words.sort_by(|v0, v1| v0.len().cmp(&v1.len()));
+        let r = words.iter_mut().map(|v| {
+            v.sort();
+            v
+        }).flatten().collect::<Vec<_>>();
+        
+
+        println!("{:?}", r);
     }
 }
