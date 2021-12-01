@@ -94,12 +94,30 @@ enum Occurrence<'a, A> {
     Multiple(usize, &'a A),
 }
 
-impl<'a, A> Occurrence<'a, A> {
+impl<'a, A> Occurrence<'a, A>
+where
+    A: Eq,
+{
     fn new(size: usize, elem: &'a A) -> Self {
         if size == 1 {
             Occurrence::Single(elem)
         } else {
             Occurrence::Multiple(size, elem)
+        }
+    }
+
+    fn can_increment(self: &Occurrence<'a, A>, elem: &'a A) -> bool {
+        match &self {
+            Occurrence::Single(a) => *a == elem,
+            Occurrence::Multiple(_, a) => *a == elem,
+        }
+    }
+
+    fn increment(occurrence: &'a Occurrence<A>, elem: &'a A) -> Option<Occurrence<'a, A>> {
+        match &occurrence {
+            Occurrence::Single(a) if *a == elem => Some(Occurrence::Multiple(2, *a)),
+            Occurrence::Multiple(n, a) if *a == elem => Some(Occurrence::Multiple(n + 1, *a)),
+            _ => None,
         }
     }
 }
@@ -123,6 +141,23 @@ fn decode<'a, A>(list: &'a Vec<Occurrence<A>>) -> Vec<&'a A> {
                 acc.append(&mut expanded);
                 acc
             }
+        })
+}
+
+fn encode_no_intermediary<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
+    list.into_iter()
+        .fold(vec![] as Vec<Occurrence<A>>, |mut acc, e| {
+            let value = match acc.pop() {
+                Some(Occurrence::Single(a)) if a == e => Occurrence::Multiple(2, e),
+                Some(Occurrence::Multiple(n, a)) if a == e => Occurrence::Multiple(n + 1, e),
+                Some(old) => {
+                    acc.push(old);
+                    Occurrence::Single(e)
+                }
+                None => Occurrence::Single(e),
+            };
+            acc.push(value);
+            acc
         })
 }
 
@@ -341,5 +376,33 @@ mod test {
 
         assert_eq!(11, res.len());
         assert_eq!(vec![&1, &1, &2, &3, &3, &3, &2, &3, &3, &2, &2], res);
+    }
+
+    #[test]
+    fn encode_no_intermediary_tests() {
+        use Occurrence::*;
+        let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
+        let res = encode_no_intermediary(&v);
+
+        assert_eq!(6, res.len());
+
+        assert_eq!(
+            vec![
+                Multiple(2, &1),
+                Single(&2),
+                Multiple(3, &3),
+                Single(&2),
+                Multiple(2, &3),
+                Multiple(2, &2)
+            ],
+            res
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn encode_no_intermediary_should_have_same_results_as_encode(list: Vec<i64>) {
+            prop_assert_eq!(encode(&list), encode_no_intermediary(&list));
+        }
     }
 }
