@@ -81,7 +81,7 @@ mod test {
     #[derive(Clone)]
     enum IndexRange {
         OutOfBounds,
-        InBounds,
+        InBounds(usize), // defines an offset
     }
 
     fn vec_and_index(range: IndexRange) -> impl Strategy<Value = (Vec<isize>, usize)> {
@@ -89,7 +89,7 @@ mod test {
             let len = vec.len();
             let index_range = match range.clone() {
                 IndexRange::OutOfBounds => len..usize::MAX,
-                IndexRange::InBounds => 0..len,
+                IndexRange::InBounds(n) => n..len+n,
             };
             (Just(vec), index_range)
         })
@@ -105,9 +105,9 @@ mod test {
 
     proptest! {
         #[test]
-        fn kth_with_index_in_range_1_len_is_some(list_and_idx in vec_and_index(IndexRange::InBounds)) {
+        fn kth_with_index_in_range_1_len_is_some(list_and_idx in vec_and_index(IndexRange::InBounds(1))) {
             let (list, idx) = list_and_idx;
-            prop_assert!(k_th(&list, idx+1).is_some()); // NOTE: idx+1 is because the generator starts with 0 as lower bound, but we want 1.
+            prop_assert!(k_th(&list, idx).is_some());
         }
     }
 
