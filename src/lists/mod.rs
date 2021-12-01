@@ -28,6 +28,13 @@ fn reverse<A: Clone>(l: &Vec<A>) -> Vec<A> {
     copy
 }
 
+fn is_palindrome<A: Eq>(l: &Vec<A>) -> bool {
+    let (forward, backward) = l.split_at(l.len() / 2);
+    let forward = forward.iter();
+    let backward = backward.iter().rev();
+    forward.zip(backward).all(|(a, b)| b == a)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -75,5 +82,14 @@ mod test {
     #[quickcheck]
     fn reverse_the_reversed_list_gives_the_original(list: Vec<isize>) -> bool {
         reverse(&reverse(&list)) == list
+    }
+
+    #[quickcheck]
+    fn concatenate_the_reversed_is_a_palindrom(list: Vec<isize>) -> bool {
+        let mut copy = list.clone();
+        copy.reverse();
+        let mut v = list.clone();
+        v.append(&mut copy);
+        is_palindrome(&v)
     }
 }
