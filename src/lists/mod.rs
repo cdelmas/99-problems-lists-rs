@@ -169,6 +169,15 @@ fn duplicate<A: Clone>(list: &[A]) -> Vec<A> {
     })
 }
 
+fn replicate<A: Clone>(list: &[A], repl_num: u8) -> Vec<A> {
+    list.iter().fold(vec![], |mut acc, e| {
+        for _ in 0..repl_num {
+            acc.push(e.clone())
+        }
+        acc
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -425,6 +434,21 @@ mod test {
         #[test]
         fn each_element_in_the_original_is_in_the_duplicates(list: Vec<isize>) {
             let res = duplicate(&list);
+            prop_assert!(list.iter().all(|o| res.contains(&o)));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn replicates_has_two_times_the_size_of_the_original(list: Vec<isize>, repl_num in 2..10) {
+            prop_assert_eq!(list.len()*repl_num as usize, replicate(&list, repl_num as u8).len());
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn each_element_in_the_original_is_in_the_replicates(list: Vec<isize>, repl_num in 2..10) {
+            let res = replicate(&list, repl_num as u8);
             prop_assert!(list.iter().all(|o| res.contains(&o)));
         }
     }
