@@ -174,6 +174,19 @@ fn replicate<A: Clone>(list: &[A], repl_num: u8) -> Vec<A> {
     })
 }
 
+fn drop_every_nth<A>(list: &[A], each: usize) -> Vec<&A> {
+    list.iter()
+        .fold((1, vec![]), |(count, mut acc), e| {
+            if count == each {
+                (1, acc)
+            } else {
+                acc.push(e);
+                (count + 1, acc)
+            }
+        })
+        .1
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -222,9 +235,6 @@ mod test {
             let (list, idx) = list_and_idx;
             prop_assert!(k_th(&list, idx).is_none());
         }
-    }
-
-    proptest! {
         #[test]
         fn kth_with_index_in_range_1_len_is_some(list_and_idx in vec_and_index(IndexRange::InBounds(1))) {
             let (list, idx) = list_and_idx;
@@ -424,9 +434,6 @@ mod test {
         fn duplicates_has_two_times_the_size_of_the_original(list: Vec<isize>) {
             prop_assert_eq!(list.len()*2, duplicate(&list).len());
         }
-    }
-
-    proptest! {
         #[test]
         fn each_element_in_the_original_is_in_the_duplicates(list: Vec<isize>) {
             let res = duplicate(&list);
@@ -436,16 +443,32 @@ mod test {
 
     proptest! {
         #[test]
-        fn replicates_has_two_times_the_size_of_the_original(list: Vec<isize>, repl_num in 2..10) {
+        fn replicates_has_n_times_the_size_of_the_original(list: Vec<isize>, repl_num in 2..10) {
             prop_assert_eq!(list.len()*repl_num as usize, replicate(&list, repl_num as u8).len());
         }
-    }
-
-    proptest! {
         #[test]
         fn each_element_in_the_original_is_in_the_replicates(list: Vec<isize>, repl_num in 2..10) {
             let res = replicate(&list, repl_num as u8);
             prop_assert!(list.iter().all(|o| res.contains(&o)));
         }
+    }
+
+    proptest! {
+        #[test]
+        fn drop_every_nth_elem_of_the_list_removes_up_to_len_minus_len_div_n_elements(list: Vec<isize>, to_remove in 0..10) {
+            let res_length = list.len() - list.len().checked_div_euclid(to_remove as usize).unwrap_or_default();
+
+            prop_assert_eq!(res_length, drop_every_nth(&list, to_remove as usize).len());
+        }
+        // other properties: keeps the order, all elements in res is also in the original
+    }
+
+    #[test]
+    fn drop_every_nth_test() {
+        let list = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        let res = drop_every_nth(&list, 2);
+
+        assert_eq!(vec![&0, &2, &4, &6, &8, &10], res);
     }
 }
