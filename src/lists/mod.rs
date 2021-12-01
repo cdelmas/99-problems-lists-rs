@@ -81,7 +81,7 @@ fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
         })
 }
 
-fn encode<A: Eq>(list: &Vec<A>) -> Vec<(usize, &A)> {
+fn occurrences<A: Eq>(list: &Vec<A>) -> Vec<(usize, &A)> {
     pack_consecutive_duplicates(&list)
         .iter()
         .map(|v| (v.len(), v[0]))
@@ -104,7 +104,7 @@ impl<'a, A> Occurrence<'a, A> {
     }
 }
 
-fn occurrences<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
+fn encode<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
     pack_consecutive_duplicates(&list)
         .into_iter()
         .map(|v| Occurrence::new(v.len(), v[0]))
@@ -272,9 +272,9 @@ mod test {
     }
 
     #[test]
-    fn encode_tests() {
+    fn occurrences_tests() {
         let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
-        let res = encode(&v);
+        let res = occurrences(&v);
 
         assert_eq!(res.len(), 6);
 
@@ -285,10 +285,10 @@ mod test {
     }
 
     #[test]
-    fn occurrences_tests() {
+    fn encode_tests() {
         use Occurrence::*;
         let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
-        let res = occurrences(&v);
+        let res = encode(&v);
 
         assert_eq!(res.len(), 6);
 
