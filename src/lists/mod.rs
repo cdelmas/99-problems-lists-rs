@@ -1,12 +1,15 @@
 fn last<A>(l: &[A]) -> Option<&A> {
-    l.last()
+    //l.last()
+    match l {
+        [] => None,
+        [.., ref a] => Some(a),
+    }
 }
 
 fn but_last<A>(l: &[A]) -> Option<&A> {
-    if l.len() >= 2 {
-        l.get(l.len() - 2)
-    } else {
-        None
+    match l {
+        [] | [_] => None,
+        [.., ref x, _] => Some(x),
     }
 }
 
@@ -23,16 +26,13 @@ fn length<A>(l: &[A]) -> usize {
 }
 
 fn reverse<A: Clone>(l: &[A]) -> Vec<A> {
-    let mut copy = (*l).to_vec();
+    let mut copy = (*l).to_vec(); // clones all the A in the vector; could use l.iter().rev().collect() but would get a Vec<&A> instead
     copy.reverse();
     copy
 }
 
 fn is_palindrome<A: Eq>(l: &[A]) -> bool {
-    let (forward, backward) = l.split_at(l.len() / 2);
-    let forward = forward.iter();
-    let backward = backward.iter().rev();
-    forward.zip(backward).all(|(a, b)| b == a)
+    l.iter().zip(l.iter().rev()).all(|(a, b)| b == a)
 }
 
 #[derive(Debug, Clone)]
@@ -42,29 +42,16 @@ enum NestedList<A> {
 }
 
 fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
-    let mut res: Vec<&A> = vec![];
     match list {
-        NestedList::Elem(e) => {
-            res.push(e);
-        }
-        NestedList::List(v) => {
-            for nl in v {
-                let mut sub = flatten(nl);
-                res.append(&mut sub);
-            }
-        }
+        NestedList::Elem(e) => vec![e],
+        NestedList::List(v) => v.iter().flat_map(|e| flatten(e)).collect(),
     }
-    res
 }
 
 fn remove_consecutive_duplicates<A: Eq>(list: &[A]) -> Vec<&A> {
-    list.iter().fold(vec![], |mut acc, e| match acc.last() {
-        Some(last) if last == &e => acc,
-        _ => {
-            acc.push(e);
-            acc
-        }
-    })
+    let mut vec: Vec<&A> = list.iter().collect();
+    vec.dedup();
+    vec
 }
 
 fn pack_consecutive_duplicates<A: Eq>(list: &[A]) -> Vec<Vec<&A>> {
@@ -131,17 +118,11 @@ fn encode<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
 
 fn decode<'a, A>(list: &'a [Occurrence<A>]) -> Vec<&'a A> {
     list.iter()
-        .fold(vec![] as Vec<&'a A>, |mut acc, o| match *o {
-            Occurrence::Single(x) => {
-                acc.push(x);
-                acc
-            }
-            Occurrence::Multiple(n, x) => {
-                let mut expanded = vec![x; n];
-                acc.append(&mut expanded);
-                acc
-            }
+        .flat_map(|o| match o {
+            Occurrence::Single(ref x) => vec![*x],
+            Occurrence::Multiple(ref n, ref x) => vec![*x; *n],
         })
+        .collect()
 }
 
 fn encode_no_intermediary<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
@@ -166,25 +147,22 @@ fn duplicate<A: Clone>(list: &[A]) -> Vec<A> {
 }
 
 fn replicate<A: Clone>(list: &[A], repl_num: u8) -> Vec<A> {
-    list.iter().fold(vec![], |mut acc, e| {
-        for _ in 0..repl_num {
-            acc.push(e.clone())
-        }
-        acc
-    })
+    list.iter()
+        .flat_map(|e| vec![e.clone(); repl_num as usize])
+        .collect()
 }
 
 fn drop_every_nth<A>(list: &[A], each: usize) -> Vec<&A> {
     list.iter()
-        .fold((1, vec![]), |(count, mut acc), e| {
-            if count == each {
-                (1, acc)
+        .enumerate()
+        .filter_map(|(i, e)| {
+            if each == 0 || i % each < each - 1 {
+                Some(e)
             } else {
-                acc.push(e);
-                (count + 1, acc)
+                None
             }
         })
-        .1
+        .collect()
 }
 
 #[cfg(test)]
