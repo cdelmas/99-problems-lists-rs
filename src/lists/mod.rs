@@ -162,11 +162,7 @@ fn encode_no_intermediary<A: Eq>(list: &[A]) -> Vec<Occurrence<A>> {
 }
 
 fn duplicate<A: Clone>(list: &[A]) -> Vec<A> {
-    list.iter().fold(vec![], |mut acc, e| {
-        acc.push(e.clone());
-        acc.push(e.clone());
-        acc
-    })
+    replicate(list, 2)
 }
 
 fn replicate<A: Clone>(list: &[A], repl_num: u8) -> Vec<A> {
