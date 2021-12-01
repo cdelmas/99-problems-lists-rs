@@ -35,17 +35,24 @@ fn is_palindrome<A: Eq>(l: &Vec<A>) -> bool {
     forward.zip(backward).all(|(a, b)| b == a)
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum NestedList<A> {
     Elem(A),
     List(Vec<Box<NestedList<A>>>),
 }
 
 fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
+    let mut res: Vec<&A> = vec![];
     match list {
-        NestedList::Elem(e) => vec![e],
-        NestedList::List(_) => vec![],
+        NestedList::Elem(e) => {
+            res.push(e);
+        }
+        NestedList::List(v) => v.iter().for_each(|nl| {
+            let mut sub = flatten(nl);
+            res.append(&mut sub);
+        }),
     }
+    res
 }
 
 #[cfg(test)]
@@ -89,7 +96,7 @@ mod test {
             let len = vec.len();
             let index_range = match range.clone() {
                 IndexRange::OutOfBounds => len..usize::MAX,
-                IndexRange::InBounds(n) => n..len+n,
+                IndexRange::InBounds(n) => n..len + n,
             };
             (Just(vec), index_range)
         })
@@ -134,7 +141,19 @@ mod test {
         }
     }
 
-    // TODO: implement a strategy for NestedList
+    fn nested_list<A: Arbitrary + Clone + 'static>() -> impl Strategy<Value = NestedList<A>> {
+        let leaf = any::<A>().prop_map(|a| NestedList::Elem(a));
+        leaf.prop_recursive(
+            8,   // 8 levels deep
+            256, // Shoot for maximum size of 256 nodes
+            10,  // We put up to 10 items per collection
+            |inner| {
+                prop::collection::vec(inner.clone(), 0..10).prop_map(|v| {
+                    NestedList::List(v.into_iter().map(|e| Box::new(e.clone())).collect())
+                })
+            },
+        )
+    }
 
     #[test]
     fn flatten_an_elem_is_a_vector_with_the_elem() {
@@ -143,5 +162,33 @@ mod test {
         let result = flatten(&e);
 
         assert_eq!(result, vec![&3]);
+    }
+
+    fn count_leaves<A>(list: &NestedList<A>) -> usize {
+        match list {
+            NestedList::Elem(_) => 1,
+            NestedList::List(v) => v.iter().map(|bl| count_leaves(bl)).sum(),
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn vector_size_is_nodes_size(list in nested_list::<usize>()) {
+            let leaf_number = count_leaves(&list);
+            prop_assert_eq!(flatten(&list).len(), leaf_number);
+        }
+    }
+
+    #[test]
+    fn flattened_contains_all_elems() {
+        let l = List(vec![
+            Box::new(List(vec![Box::new(Elem(4))])),
+            Box::new(Elem(2)),
+            Box::new(List(vec![Box::new(Elem(6))])),
+            Box::new(Elem(17)),
+        ]);
+        let res = flatten(&l);
+
+        assert_eq!(res, vec![&4, &2, &6, &17]);
     }
 }
