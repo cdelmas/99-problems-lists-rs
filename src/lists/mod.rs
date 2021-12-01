@@ -111,17 +111,27 @@ fn encode<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
         .collect()
 }
 
+fn decode<'a, A>(list: &'a Vec<Occurrence<A>>) -> Vec<&'a A> {
+    list.into_iter()
+        .fold(vec![] as Vec<&'a A>, |mut acc, o| match *o {
+            Occurrence::Single(x) => {
+                acc.push(x);
+                acc
+            }
+            Occurrence::Multiple(n, x) => {
+                let mut expanded = vec![x; n];
+                acc.append(&mut expanded);
+                acc
+            }
+        })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     use proptest::prelude::*;
     use NestedList::*;
-
-    #[test]
-    fn it_does_pass() {
-        assert_eq!(1, 1);
-    }
 
     proptest! {
         #[test]
@@ -183,7 +193,7 @@ mod test {
 
     #[test]
     fn is_a_palindrom() {
-        assert_eq!(is_palindrome(&vec![1, 2, 4, 2, 1]), true);
+        assert_eq!(true, is_palindrome(&vec![1, 2, 4, 2, 1]));
     }
 
     proptest! {
@@ -217,7 +227,7 @@ mod test {
 
         let result = flatten(&e);
 
-        assert_eq!(result, vec![&3]);
+        assert_eq!(vec![&3], result);
     }
 
     fn count_leaves<A>(list: &NestedList<A>) -> usize {
@@ -231,7 +241,7 @@ mod test {
         #[test]
         fn vector_size_is_nodes_size(list in nested_list::<usize>()) {
             let leaf_number = count_leaves(&list);
-            prop_assert_eq!(flatten(&list).len(), leaf_number);
+            prop_assert_eq!(leaf_number, flatten(&list).len());
         }
     }
 
@@ -245,7 +255,7 @@ mod test {
         ]);
         let res = flatten(&l);
 
-        assert_eq!(res, vec![&4, &2, &6, &17]);
+        assert_eq!(vec![&4, &2, &6, &17], res);
     }
 
     proptest! {
@@ -290,7 +300,7 @@ mod test {
         let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
         let res = encode(&v);
 
-        assert_eq!(res.len(), 6);
+        assert_eq!(6, res.len());
 
         assert_eq!(
             vec![
@@ -303,5 +313,33 @@ mod test {
             ],
             res
         );
+    }
+
+    proptest! {
+        #[test]
+        fn encoding_then_decoding_gives_the_original_array(list: Vec<i32>) {
+            let initial: Vec<&i32> = list.iter().collect();
+            let encoded = encode(&list);
+            let decoded = decode(&encoded);
+            prop_assert_eq!(initial, decoded);
+        }
+    }
+
+    #[test]
+    fn decode_tests() {
+        use Occurrence::*;
+        let v = vec![
+            Multiple(2, &1),
+            Single(&2),
+            Multiple(3, &3),
+            Single(&2),
+            Multiple(2, &3),
+            Multiple(2, &2),
+        ];
+
+        let res = decode(&v);
+
+        assert_eq!(11, res.len());
+        assert_eq!(vec![&1, &1, &2, &3, &3, &3, &2, &3, &3, &2, &2], res);
     }
 }
