@@ -227,11 +227,20 @@ fn lottery_draw<R>(upper_bound: u32, n: u32, rng: &mut R) -> Vec<u32>
 where
     R: Rng,
 {
-    let numbers: Vec<u32> = (1..upper_bound+1).collect();
+    let numbers: Vec<u32> = (1..upper_bound + 1).collect();
     random_select(&numbers, n as usize, rng)
         .into_iter()
         .cloned()
         .collect()
+}
+
+fn random_permutation<'a, A, R>(list: &'a [A], rng: &mut R) -> Vec<&'a A>
+where
+    R: Rng,
+{
+    let mut v: Vec<&A> = list.iter().collect();
+    v.shuffle(rng);
+    v
 }
 
 #[cfg(test)]
@@ -651,5 +660,22 @@ mod test {
             prop_assert!(res.iter().all(|e| *e >= 1 && *e <= upper_bound));
         }
 
+    }
+
+    proptest! {
+
+        #[test]
+        fn permutation_has_same_size_as_original(list: Vec<char>) {
+            let res = random_permutation(&list, &mut rand::thread_rng());
+
+            prop_assert_eq!(list.len(), res.len());
+        }
+
+        #[test]
+        fn permutation_has_same_elements_as_original(list: Vec<char>) {
+            let res = random_permutation(&list, &mut rand::thread_rng());
+
+            prop_assert!(res.iter().all(|e| list.contains(e)) && list.iter().all(|e| res.contains(&e)));
+        }
     }
 }
