@@ -161,6 +161,14 @@ fn encode_no_intermediary<A: Eq>(list: &Vec<A>) -> Vec<Occurrence<A>> {
         })
 }
 
+fn duplicate<A: Clone>(list: &Vec<A>) -> Vec<A> {
+    list.into_iter().fold(vec![], |mut acc, e| {
+        acc.push(e.clone());
+        acc.push(e.clone());
+        acc
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -403,6 +411,21 @@ mod test {
         #[test]
         fn encode_no_intermediary_should_have_same_results_as_encode(list: Vec<i64>) {
             prop_assert_eq!(encode(&list), encode_no_intermediary(&list));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn duplicates_has_two_times_the_size_of_the_original(list: Vec<isize>) {
+            prop_assert_eq!(list.len()*2, duplicate(&list).len());
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn each_element_in_the_original_is_in_the_duplicates(list: Vec<isize>) {
+            let res = duplicate(&list);
+            prop_assert!(list.iter().all(|o| res.contains(&o)));
         }
     }
 }
