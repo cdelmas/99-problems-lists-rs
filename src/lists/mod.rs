@@ -210,6 +210,10 @@ fn insert_at<A: Clone>(list: &[A], a: A, at: usize) -> Vec<A> {
     v
 }
 
+fn range(from: u32, to: u32) -> Vec<u32> {
+    (from..to+1).collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -580,6 +584,17 @@ mod test {
             prop_assert!(
                 res.len() == list.len()+1 && res.contains(&c) && list.iter().all(|e| res.contains(e))
             );
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn range_has_to_minus_from_elements_all_between_from_and_to(from in 0..10000u32, to in 0..10000u32) {
+            let res = range(from, to);
+            let size = if from <= to { to - from + 1 } else { 0 } as usize;
+
+            prop_assert_eq!(size, res.len());
+            prop_assert!(res.iter().all(|e| *e >= from && *e <= to));
         }
     }
 }
