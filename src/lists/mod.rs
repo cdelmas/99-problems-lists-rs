@@ -1,17 +1,19 @@
+use rand::seq::SliceRandom;
+use rand::Rng;
 use std::cmp::min;
 
 fn last<A>(l: &[A]) -> Option<&A> {
     //l.last()
     match l {
         [] => None,
-        [.., ref a] => Some(a),
+        [.., a] => Some(a),
     }
 }
 
 fn but_last<A>(l: &[A]) -> Option<&A> {
     match l {
         [] | [_] => None,
-        [.., ref x, _] => Some(x),
+        [.., x, _] => Some(x),
     }
 }
 
@@ -211,7 +213,14 @@ fn insert_at<A: Clone>(list: &[A], a: A, at: usize) -> Vec<A> {
 }
 
 fn range(from: u32, to: u32) -> Vec<u32> {
-    (from..to+1).collect()
+    (from..to + 1).collect()
+}
+
+fn random_select<'a, A, R>(list: &'a [A], n: usize, rng: &mut R) -> Vec<&'a A>
+where
+    R: Rng,
+{
+    list.choose_multiple(rng, n).collect()
 }
 
 #[cfg(test)]
@@ -595,6 +604,22 @@ mod test {
 
             prop_assert_eq!(size, res.len());
             prop_assert!(res.iter().all(|e| *e >= from && *e <= to));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_of_chosen_is_min_original_length_n(list: Vec<char>, n in 0..10000usize) {
+            let res = random_select(&list, n, &mut rand::thread_rng());
+
+            prop_assert_eq!(min(list.len(), n), res.len());
+        }
+
+        #[test]
+        fn all_chosen_are_in_the_original_list(list: Vec<char>, n in 0..10000usize) {
+            let res = random_select(&list, n, &mut rand::thread_rng());
+
+            prop_assert!(res.iter().all(|e| list.contains(e)));
         }
     }
 }
