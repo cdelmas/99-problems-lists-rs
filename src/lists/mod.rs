@@ -58,32 +58,34 @@ fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
 }
 
 fn remove_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<&A> {
-    let (_, res) = list
-        .iter()
-        .fold((None, vec![]), |(prev, mut acc), e| match prev {
-            Some(last) if last == e => (prev, acc),
-            _ => {
-                acc.push(e);
-                (Some(e), acc)
-            }
-        });
-    res
+    list.iter().fold(vec![], |mut acc, e| match acc.last() {
+        Some(last) if last == &e => acc,
+        _ => {
+            acc.push(e);
+            acc
+        }
+    })
 }
 
 fn pack_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<Vec<&A>> {
-    let (_, res) = list.iter().fold(
-        (vec![], vec![]) as (Vec<&A>, Vec<Vec<&A>>),
-        |(mut prev, mut acc), e| {
-            if prev.contains(&e) {
+    list.iter()
+        .fold(vec![] as Vec<Vec<&A>>, |mut acc, e| match acc.last_mut() {
+            Some(prev) if prev.contains(&e) => {
                 prev.push(e);
-                (prev, acc)
-            } else {
-                acc.push(prev);
-                (vec![e], acc)
+                acc
             }
-        },
-    );
-    res
+            _ => {
+                acc.push(vec![e]);
+                acc
+            }
+        })
+}
+
+fn encode<A: Eq + std::fmt::Debug>(list: &Vec<A>) -> Vec<(usize, &A)> {
+    pack_consecutive_duplicates(&list)
+        .iter()
+        .map(|v| (v.len(), v[0]))
+        .collect()
 }
 
 #[cfg(test)]
@@ -244,5 +246,18 @@ mod test {
 
             prop_assert_eq!(no_dups.len(), packed.len());
         }
+    }
+
+    #[test]
+    fn encode_tests() {
+        let v = vec![1, 1, 2, 3, 3, 3, 2, 3, 3, 2, 2];
+        let res = encode(&v);
+
+        assert_eq!(res.len(), 6);
+
+        assert_eq!(
+            vec![(2, &1), (1, &2), (3, &3), (1, &2), (2, &3), (2, &2)],
+            res
+        );
     }
 }
