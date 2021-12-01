@@ -192,6 +192,16 @@ fn rotate<A: Clone>(list: &[A], n: isize) -> Vec<A> {
     [second, first].concat()
 }
 
+fn remove_at<A: Clone>(list: &[A], n: usize) -> Option<(A, Vec<A>)> {
+    if n >= list.len() {
+        None
+    } else {
+        let mut v = list.to_vec();
+        let e = v.remove(n);
+        Some((e, v))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -537,5 +547,21 @@ mod test {
             let re_rotated = rotate(&rotated, -n);
             prop_assert_eq!(list, re_rotated);
         }
+    }
+
+    proptest! {
+        #[test]
+        fn remove_at_is_some_list_with_one_less_elem_if_index_in_bounds_or_is_none(list: Vec<char>, n in 0..10usize) {
+            let res = remove_at(&list, n);
+
+            let condition = match res {
+                        Some((e, v)) => {v.len() == list.len()-1 && list.contains(&e) && v.iter().all(|x| list.contains(x))},
+                        None => n >= list.len()
+                    };
+
+            prop_assert!(condition);
+        }
+
+        // another prop: remove_at n followed by insert_at n is the original
     }
 }
