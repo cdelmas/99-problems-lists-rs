@@ -165,6 +165,14 @@ fn drop_every_nth<A>(list: &[A], each: usize) -> Vec<&A> {
         .collect()
 }
 
+fn split_n<A>(list: &[A], at: usize) -> (&[A], &[A]) {
+    if at > list.len() {
+        (list, &[])
+    } else {
+        list.split_at(at)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -448,5 +456,21 @@ mod test {
         let res = drop_every_nth(&list, 2);
 
         assert_eq!(vec![&0, &2, &4, &6, &8, &10], res);
+    }
+
+    proptest! {
+        #[test]
+        fn split_then_join_leads_to_the_original(list: Vec<isize>, at in 0..10) {
+            let (part1, part2) = split_n(&list, at as usize);
+
+            prop_assert_eq!(list.as_slice(), [part1, part2].concat());
+        }
+
+        #[test]
+        fn first_part_has_size_at_or_is_full_original(list: Vec<isize>, at in 0..10) {
+            let (part1, _) = split_n(&list, at as usize);
+
+            prop_assert_eq!(std::cmp::min(at as usize, list.len()), part1.len());
+        }
     }
 }
