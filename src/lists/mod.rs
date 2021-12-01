@@ -58,16 +58,15 @@ fn flatten<A>(list: &NestedList<A>) -> Vec<&A> {
 }
 
 fn remove_consecutive_duplicates<A: Eq>(list: &Vec<A>) -> Vec<&A> {
-    let (_, res) = list.iter().fold((None, vec![]), |(prev, acc), e| {
-        let mut acc = acc;
-        match prev {
+    let (_, res) = list
+        .iter()
+        .fold((None, vec![]), |(prev, mut acc), e| match prev {
             Some(last) if last == e => (prev, acc),
             _ => {
                 acc.push(e);
                 (Some(e), acc)
             }
-        }
-    });
+        });
     res
 }
 
