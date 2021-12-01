@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use std::cmp::min;
@@ -241,6 +242,10 @@ where
     let mut v: Vec<&A> = list.iter().collect();
     v.shuffle(rng);
     v
+}
+
+fn combinations<'a, A>(list: &'a [A], n: usize) -> Vec<Vec<&'a A>> {
+    list.into_iter().combinations(n).collect()
 }
 
 #[cfg(test)]
@@ -676,6 +681,27 @@ mod test {
             let res = random_permutation(&list, &mut rand::thread_rng());
 
             prop_assert!(res.iter().all(|e| list.contains(e)) && list.iter().all(|e| res.contains(&e)));
+        }
+    }
+
+    fn small_vector() -> impl Strategy<Value = Vec<char>> {
+        proptest::collection::vec(proptest::char::any(), 3..10)
+    }
+
+    proptest! {
+        #[test]
+        fn combinations_has_c_length_n_size(list in small_vector(), n in 1..5u16) {
+            let expected_total = num_integer::binomial::<u16>(list.len() as u16, n) as usize;
+            let res = combinations(&list, n as usize);
+
+            prop_assert_eq!(expected_total, res.len());
+        }
+
+        #[test]
+        fn combinations_have_elements_in_original(list in small_vector(), n in 1..5u16) {
+            let res = combinations(&list, n as usize);
+
+            prop_assert!(res.iter().flatten().all(|e| list.contains(e)));
         }
     }
 }
