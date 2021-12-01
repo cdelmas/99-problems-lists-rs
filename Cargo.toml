@@ -8,5 +8,4 @@ edition = "2018"
 [dependencies]
 
 [dev-dependencies]
-quickcheck = "1"
-quickcheck_macros = "1"
+proptest = "1"
