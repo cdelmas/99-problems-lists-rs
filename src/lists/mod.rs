@@ -836,24 +836,27 @@ mod test {
     // - ???
     #[test]
     fn group_by() {
+        use itertools::Itertools;
         use std::collections::BTreeMap;
         use std::iter::FromIterator;
-        use itertools::Itertools;
-        
+
         // input: list of lists
-        
+
         // TODO: tri: nb occurrences sur la longueur de la liste: la longueur la moins courante en premier
-        // => creer 
-        
-        let v: Vec<&str> = vec!["alpha","beta","gamma","delta","omicron","omega"];
+        // => creer
+
+        let v: Vec<&str> = vec!["alpha", "beta", "gamma", "delta", "omicron", "omega"];
         let lookup = v.into_iter().into_group_map_by(|e| e.len());
         let mut words = lookup.values().cloned().collect::<Vec<_>>();
         words.sort_by(|v0, v1| v0.len().cmp(&v1.len()));
-        let r = words.iter_mut().map(|v| {
-            v.sort();
-            v
-        }).flatten().collect::<Vec<_>>();
-        
+        let r = words
+            .iter_mut()
+            .map(|v| {
+                v.sort();
+                v
+            })
+            .flatten()
+            .collect::<Vec<_>>();
 
         println!("{:?}", r);
     }

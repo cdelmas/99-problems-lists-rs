@@ -1,3 +1,4 @@
+mod arithmetic;
 mod lists;
 
 fn main() {
