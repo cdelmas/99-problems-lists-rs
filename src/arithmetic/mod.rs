@@ -12,6 +12,19 @@ fn is_prime(n: u64) -> bool {
     }
 }
 
+fn gcd(n: u32, m: u32) -> u32 {
+    if n == 0 || m == 0 {
+        panic!()
+    } else {
+        let r = n % m;
+        if r == 0 {
+            m
+        } else {
+            gcd(m, r)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -41,4 +54,28 @@ mod tests {
             prop_assert!(is_prime(n))
         }
     }
+
+    // GCD Euclid algorithm
+    use num::integer::gcd as oracle;
+
+    #[test]
+    #[should_panic]
+    fn gcd_does_not_compute_for_n_eq_0() {
+        gcd(0, 42);
+    }
+
+    #[test]
+    #[should_panic]
+    fn gcd_does_not_compute_for_m_eq_0() {
+        gcd(666, 0);
+    }
+
+    proptest! {
+        #[test]
+        fn gcd_is_same_as_oracle(n in 1u32..100000, m in 1u32..100000) {
+            prop_assert_eq!(oracle(n, m), gcd(n, m))
+        }
+    }
+
+    
 }
